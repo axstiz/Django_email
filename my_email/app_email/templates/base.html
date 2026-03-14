@@ -10,7 +10,7 @@
 </head>
 <body>
     <header class="header">
-        <a href="{% url 'root' %}" class="logo">📧 Почта</a>
+        <a href="{% url 'root' %}" class="logo">📧 axstiz_Почта</a>
         {% if user.is_authenticated %}
         <div class="user-menu">
             <span class="username">👤 {{ user.username }}</span>
@@ -41,7 +41,7 @@
     </main>
     
     <footer class="footer">
-        <p>&copy; 2026 Почта. Все права защищены.</p>
+        <p>&copy; 2026 axstiz_Почта. Все права защищены (наверное).</p>
     </footer>
     
     {% block extra_js %}{% endblock %}
