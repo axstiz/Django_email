@@ -1,0 +1,13 @@
+{% extends "base.html" %}\n\n{% block content %}<h1>Письма: {{ folder }}</h1>
+
+<ul>
+{% for email in emails %}
+    <li>
+        <a href="{% url 'email_detail' username=username email_slug=email.slug %}">
+            {{ email.subject }} (от: {{ email.sender }})
+        </a>
+    </li>
+{% endfor %}
+</ul>
+
+<a href="{% url 'inbox' username=username %}">Назад во входящие</a>{% endblock %}

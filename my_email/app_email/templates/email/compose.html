@@ -1,0 +1,8 @@
+<h1>Новое письмо</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Отправить</button>
+    <a href="{% url 'inbox' username=username %}">Отмена</a>
+</form>

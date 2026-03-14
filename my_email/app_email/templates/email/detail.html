@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<article>
+    <h2>{{ email.subject }}</h2>
+    <p><strong>От:</strong> {{ email.sender }}</p>
+    <p><strong>Кому:</strong> {{ email.recipient }}</p>
+    <p><strong>Дата:</strong> {{ email.timestamp }}</p>
+    <hr>
+    <div>{{ email.body|linebreaks }}</div>
+</article>
+
+<!-- Форма для перемещения письма -->
+{% if email.folder != 'sent' %}
+<div style="margin-top: 20px;">
+    <h3>Переместить письмо</h3>
+    <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}">
+        {% csrf_token %}
+        <select name="folder" required>
+            <option value="inbox">Входящие</option>
+            <option value="drafts">Черновики</option>
+            <option value="trash">Корзина</option>
+        </select>
+        <button type="submit">Переместить</button>
+    </form>
+</div>
+{% endif %}
+
+<p>
+    <a href="{% url 'email_list' username=username folder='inbox' %}">Назад в папку</a>
+</p>
+{% endblock %}

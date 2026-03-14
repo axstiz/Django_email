@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Почта{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .username {
+            font-weight: bold;
+        }
+        .content {
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>Почта</div>
+        <div class="username">Пользователь: {{ username }} | <form method="post" action="{% url 'logout' %}" style="display: inline;">{% csrf_token %}<button type="submit" style="background: none; border: none; color: #007bff; cursor: pointer; padding: 0; font: inherit;">Выйти</button></form></div>
+    </div>
+    <div class="content">
+        <p><a href="{% url 'compose' request.user.username %}">✍️ Написать письмо</a></p>
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

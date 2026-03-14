@@ -1,0 +1,23 @@
+{% extends "base.html" %}\n\n{% block content %}<h1>Входящие</h1>
+
+<p>Список папок:</p>
+<ul>
+    <li><a href="{% url 'email_list' username=username folder='inbox' %}">Входящие</a></li>
+    <li><a href="{% url 'email_list' username=username folder='sent' %}">Отправленные</a></li>
+    <li><a href="{% url 'email_list' username=username folder='drafts' %}">Черновики</a></li>
+    <li><a href="{% url 'email_list' username=username folder='trash' %}">Корзина</a></li>
+</ul>
+
+{% if emails %}
+    <ul>
+    {% for email in emails %}
+        <li>
+            <a href="{% url 'email_detail' username=username email_slug=email.slug %}">
+                {{ email.subject }} (от: {{ email.sender }})
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Нет писем.</p>
+{% endif %}{% endblock %}
