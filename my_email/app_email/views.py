@@ -104,11 +104,9 @@ def email_list(request, username, folder):
         # Черновики — только sender
         emails = Email.objects.filter(sender=request.user, folder=folder)
     elif folder == 'trash':
-        # Корзина — и sender, и recipient
-        emails = Email.objects.filter(
-            Q(sender=request.user, folder=folder) |
-            Q(recipient=request.user, folder=folder)
-        )
+        # Корзина — только входящие, которые получатель переместил в корзину
+        # (не отображаем удалённые отправленные письма)
+        emails = Email.objects.filter(recipient=request.user, folder=folder)
     else:
         # Входящие и остальные — recipient
         emails = Email.objects.filter(recipient=request.user, folder=folder)
@@ -242,12 +240,18 @@ def move_email(request, email_slug, username):
             messages.error(request, "Нельзя переместить письмо в черновики.")
             return redirect('email_detail', username=username, email_slug=email.slug)
         
+        # Проверка: отправитель не может переместить письмо в корзину
+        # (отправленные письма можно только удалять)
+        if email.sender == request.user and folder == 'trash':
+            messages.error(request, "Отправленные письма нельзя переместить в корзину. Используйте удаление.")
+            return redirect('email_detail', username=username, email_slug=email.slug)
+        
         # Проверка: допустимые папки для перемещения
         valid_folders = ["inbox", "drafts", "trash", "sent"]
         if folder in valid_folders:
-            # Отправитель может перемещать только в sent или trash
-            if email.sender == request.user and folder not in ['sent', 'trash']:
-                messages.error(request, "Отправитель может перемещать письмо только в 'Отправленные' или 'Корзина'.")
+            # Отправитель может перемещать только в sent
+            if email.sender == request.user and folder not in ['sent']:
+                messages.error(request, "Отправитель может перемещать письмо только в 'Отправленные'.")
                 return redirect('email_detail', username=username, email_slug=email.slug)
             
             # Получатель может перемещать только в inbox или trash
@@ -266,8 +270,9 @@ def move_email(request, email_slug, username):
 def delete_email(request, email_slug, username):
     """
     Удаление письма.
-    - Если письмо в корзине — удаляем навсегда
-    - Если письмо не в корзине — перемещаем в корзину
+    - Если письмо отправленное (sent) — удаляем навсегда сразу
+    - Если письмо в корзине (trash) — удаляем навсегда
+    - Если письмо во входящих (inbox) или черновиках (drafts) — перемещаем в корзину
     """
     email = get_object_or_404(Email, slug=email_slug)
 
@@ -275,12 +280,12 @@ def delete_email(request, email_slug, username):
         messages.error(request, "Доступ запрещён.")
         return redirect('inbox', username=request.user.username)
 
-    if email.folder == 'trash':
-        # Письмо уже в корзине — удаляем навсегда
+    if email.folder in ['trash', 'sent']:
+        # Письмо в корзине или отправленное — удаляем навсегда
         email.delete()
         messages.success(request, "Письмо удалено навсегда.")
     else:
-        # Письмо не в корзине — перемещаем в корзину
+        # Письмо во входящих или черновиках — перемещаем в корзину
         email.move_to_folder('trash')
         messages.success(request, "Письмо перемещено в корзину.")
 

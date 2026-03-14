@@ -159,10 +159,10 @@ class EmailViewTest(TestCase):
         self.assertContains(response, 'Черновик')
     
     def test_email_list_trash(self):
-        """Тест просмотра корзины (письма отправителя и получателя)."""
+        """Тест просмотра корзины (только письма получателя)."""
         self.client.login(username='testuser', password='password123')
         
-        # Письмо, где testuser - получатель
+        # Письмо, где testuser - получатель (в корзине)
         Email.objects.create(
             sender=self.other_user,
             recipient=self.user,
@@ -171,7 +171,7 @@ class EmailViewTest(TestCase):
             folder='trash'
         )
         
-        # Письмо, где testuser - отправитель
+        # Письмо, где testuser - отправитель (НЕ должно отображаться в корзине)
         Email.objects.create(
             sender=self.user,
             recipient=self.other_user,
@@ -187,7 +187,7 @@ class EmailViewTest(TestCase):
         
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Входящее в корзине')
-        self.assertContains(response, 'Исходящее в корзине')
+        self.assertNotContains(response, 'Исходящее в корзине')
     
     def test_compose_email_get(self):
         """Тест страницы написания письма."""
@@ -359,6 +359,29 @@ class EmailViewTest(TestCase):
         email.refresh_from_db()
         self.assertEqual(email.folder, 'trash')
     
+    def test_delete_email_from_sent(self):
+        """Тест: удаление из отправленных удаляет навсегда."""
+        self.client.login(username='testuser', password='password123')
+        
+        email = Email.objects.create(
+            sender=self.user,
+            recipient=self.other_user,
+            subject='Отправленное',
+            body='Текст',
+            folder='sent'
+        )
+        
+        response = self.client.post(reverse('delete_email', kwargs={
+            'username': 'testuser',
+            'email_slug': email.slug
+        }))
+        
+        self.assertRedirects(response, reverse('inbox', kwargs={'username': 'testuser'}))
+        
+        # Письмо должно быть удалено
+        email_exists = Email.objects.filter(slug=email.slug).exists()
+        self.assertFalse(email_exists)
+    
     def test_delete_email_from_trash(self):
         """Тест: удаление из корзины удаляет навсегда."""
         self.client.login(username='testuser', password='password123')
@@ -446,6 +469,32 @@ class EmailViewTest(TestCase):
         email.refresh_from_db()
         self.assertNotEqual(email.folder, 'drafts')
         self.assertEqual(email.folder, 'inbox')
+    
+    def test_sender_cannot_move_to_trash(self):
+        """Тест: отправитель не может переместить письмо в корзину."""
+        self.client.login(username='testuser', password='password123')
+        
+        email = Email.objects.create(
+            sender=self.user,
+            recipient=self.other_user,
+            subject='Отправленное',
+            body='Текст',
+            folder='sent'
+        )
+        
+        response = self.client.post(reverse('move_email', kwargs={
+            'username': 'testuser',
+            'email_slug': email.slug
+        }), {'folder': 'trash'})
+        
+        # Должна быть ошибка, письмо не должно переместиться
+        self.assertRedirects(response, reverse('email_detail', kwargs={
+            'username': 'testuser',
+            'email_slug': email.slug
+        }))
+        
+        email.refresh_from_db()
+        self.assertEqual(email.folder, 'sent')
     
     def test_move_email(self):
         """Тест перемещения письма."""

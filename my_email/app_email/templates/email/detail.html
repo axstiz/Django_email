@@ -64,26 +64,11 @@
             <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить письмо навсегда? Это действие нельзя отменить.')">🗑️ Удалить навсегда</button>
         </form>
 
-        {% elif email.folder == 'trash' and email.sender == user %}
-        <!-- Действия для корзины (отправитель) -->
-        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
-            {% csrf_token %}
-            <select name="folder" required>
-                <option value="sent">📤 Восстановить в отправленные</option>
-            </select>
-            <button type="submit" class="btn btn-primary">Восстановить</button>
-        </form>
+        {% elif email.folder == 'sent' and email.sender == user %}
+        <!-- Действия для отправленных (только удаление) -->
         <form method="post" action="{% url 'delete_email' username=username email_slug=email.slug %}" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить письмо навсегда? Это действие нельзя отменить.')">🗑️ Удалить навсегда</button>
-        </form>
-
-        {% elif email.folder == 'sent' and email.sender == user %}
-        <!-- Действия для отправленных (только перемещение в корзину) -->
-        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
-            {% csrf_token %}
-            <input type="hidden" name="folder" value="trash">
-            <button type="submit" class="btn btn-primary">🗑️ В корзину</button>
         </form>
         {% endif %}
     </div>
