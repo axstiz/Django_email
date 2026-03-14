@@ -1,13 +1,91 @@
-{% extends "base.html" %}\n\n{% block content %}<h1>Письма: {{ folder }}</h1>
+{% extends "base.html" %}
 
-<ul>
-{% for email in emails %}
-    <li>
-        <a href="{% url 'email_detail' username=username email_slug=email.slug %}">
-            {{ email.subject }} (от: {{ email.sender }})
-        </a>
-    </li>
-{% endfor %}
-</ul>
+{% block title %}{{ folder_name }}{% endblock %}
 
-<a href="{% url 'inbox' username=username %}">Назад во входящие</a>{% endblock %}
+{% block content %}
+<nav class="nav-folders">
+    <ul>
+        <li><a href="{% url 'email_list' username=username folder='inbox' %}" class="{% if folder == 'inbox' %}active{% endif %}">📥 Входящие</a></li>
+        <li><a href="{% url 'email_list' username=username folder='sent' %}" class="{% if folder == 'sent' %}active{% endif %}">📤 Отправленные</a></li>
+        <li><a href="{% url 'email_list' username=username folder='drafts' %}" class="{% if folder == 'drafts' %}active{% endif %}">📝 Черновики</a></li>
+        <li><a href="{% url 'email_list' username=username folder='trash' %}" class="{% if folder == 'trash' %}active{% endif %}">🗑️ Корзина</a></li>
+    </ul>
+</nav>
+
+<form method="get" class="search-form">
+    <input type="text" name="q" class="form-control" placeholder="Поиск писем..." value="{{ query|default:'' }}">
+    <button type="submit" class="btn btn-primary">🔍 Найти</button>
+    {% if query %}
+    <a href="{% url 'email_list' username=username folder=folder %}" class="btn btn-link">Сбросить</a>
+    {% endif %}
+</form>
+
+<h1>{{ folder_name }}</h1>
+
+<div class="email-list">
+    {% if emails %}
+    <ul>
+        {% for email in emails %}
+        <li class="{% if not email.read and folder == 'inbox' %}unread{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;">
+                    <a href="{% url 'email_detail' username=username email_slug=email.slug %}">
+                        {{ email.subject }}
+                        {% if folder == 'drafts' %}
+                        <span style="background: var(--warning-color); color: #000; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">Черновик</span>
+                        {% endif %}
+                    </a>
+                    <div class="meta">
+                        {% if folder == 'sent' %}
+                            Кому: {{ email.recipient.username }}
+                        {% elif folder == 'drafts' %}
+                            Кому: {{ email.recipient.username }}
+                        {% else %}
+                            От: {{ email.sender.username }}
+                        {% endif %}
+                        | {{ email.timestamp|date:"d.m.Y H:i" }}
+                        {% if not email.read and folder == 'inbox' %} • <strong>Не прочитано</strong>{% endif %}
+                    </div>
+                </div>
+                {% if folder == 'drafts' and email.sender == user %}
+                <div style="margin-left: 1rem;">
+                    <a href="{% url 'edit_draft' username=username email_slug=email.slug %}" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;">✏️</a>
+                </div>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    
+    {% if page_obj.has_other_pages %}
+    <nav class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">← Назад</a>
+        {% else %}
+        <span class="disabled">← Назад</span>
+        {% endif %}
+        
+        <span class="current">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+        <a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">Вперёд →</a>
+        {% else %}
+        <span class="disabled">Вперёд →</span>
+        {% endif %}
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <p>📭 Нет писем в этой папке</p>
+        {% if query %}
+        <p>Попробуйте изменить поисковый запрос</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<p style="margin-top: 1rem;">
+    <a href="{% url 'inbox' username=username %}" class="btn btn-link">← Назад во входящие</a>
+</p>
+{% endblock %}

@@ -1,32 +1,91 @@
 {% extends "base.html" %}
 
+{% block title %}{{ email.subject }}{% endblock %}
+
 {% block content %}
-<article>
-    <h2>{{ email.subject }}</h2>
-    <p><strong>От:</strong> {{ email.sender }}</p>
-    <p><strong>Кому:</strong> {{ email.recipient }}</p>
-    <p><strong>Дата:</strong> {{ email.timestamp }}</p>
-    <hr>
-    <div>{{ email.body|linebreaks }}</div>
+<article class="email-detail">
+    <h1>{{ email.subject }}</h1>
+
+    <div class="email-meta">
+        <strong>От:</strong>
+        <span>{{ email.sender.username }}</span>
+
+        <strong>Кому:</strong>
+        <span>{{ email.recipient.username }}</span>
+
+        <strong>Дата:</strong>
+        <span>{{ email.timestamp|date:"d.m.Y H:i" }}</span>
+
+        <strong>Статус:</strong>
+        <span>{% if email.read %}✓ Прочитано{% else %}○ Не прочитано{% endif %}</span>
+
+        <strong>Папка:</strong>
+        <span>
+            {% if email.folder == 'inbox' %}📥 Входящие
+            {% elif email.folder == 'sent' %}📤 Отправленные
+            {% elif email.folder == 'drafts' %}📝 Черновики
+            {% elif email.folder == 'trash' %}🗑️ Корзина
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="email-body">{{ email.body|linebreaks }}</div>
+
+    <div class="email-actions">
+        <a href="{% url 'inbox' username=username %}" class="btn btn-link">← Назад</a>
+
+        {% if email.folder == 'drafts' and email.sender == user %}
+        <!-- Действия для черновика -->
+        <a href="{% url 'edit_draft' username=username email_slug=email.slug %}" class="btn btn-primary">✏️ Редактировать</a>
+        <form method="post" action="{% url 'delete_email' username=username email_slug=email.slug %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить черновик навсегда?')">🗑️ Удалить</button>
+        </form>
+
+        {% elif email.folder == 'inbox' and email.recipient == user %}
+        <!-- Действия для входящих (только перемещение в корзину) -->
+        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
+            {% csrf_token %}
+            <input type="hidden" name="folder" value="trash">
+            <button type="submit" class="btn btn-primary">🗑️ В корзину</button>
+        </form>
+
+        {% elif email.folder == 'trash' and email.recipient == user %}
+        <!-- Действия для корзины (получатель) -->
+        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
+            {% csrf_token %}
+            <select name="folder" required>
+                <option value="inbox">📥 Восстановить во входящие</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Восстановить</button>
+        </form>
+        <form method="post" action="{% url 'delete_email' username=username email_slug=email.slug %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить письмо навсегда? Это действие нельзя отменить.')">🗑️ Удалить навсегда</button>
+        </form>
+
+        {% elif email.folder == 'trash' and email.sender == user %}
+        <!-- Действия для корзины (отправитель) -->
+        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
+            {% csrf_token %}
+            <select name="folder" required>
+                <option value="sent">📤 Восстановить в отправленные</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Восстановить</button>
+        </form>
+        <form method="post" action="{% url 'delete_email' username=username email_slug=email.slug %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить письмо навсегда? Это действие нельзя отменить.')">🗑️ Удалить навсегда</button>
+        </form>
+
+        {% elif email.folder == 'sent' and email.sender == user %}
+        <!-- Действия для отправленных (только перемещение в корзину) -->
+        <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}" class="move-form">
+            {% csrf_token %}
+            <input type="hidden" name="folder" value="trash">
+            <button type="submit" class="btn btn-primary">🗑️ В корзину</button>
+        </form>
+        {% endif %}
+    </div>
 </article>
-
-<!-- Форма для перемещения письма -->
-{% if email.folder != 'sent' %}
-<div style="margin-top: 20px;">
-    <h3>Переместить письмо</h3>
-    <form method="post" action="{% url 'move_email' username=username email_slug=email.slug %}">
-        {% csrf_token %}
-        <select name="folder" required>
-            <option value="inbox">Входящие</option>
-            <option value="drafts">Черновики</option>
-            <option value="trash">Корзина</option>
-        </select>
-        <button type="submit">Переместить</button>
-    </form>
-</div>
-{% endif %}
-
-<p>
-    <a href="{% url 'email_list' username=username folder='inbox' %}">Назад в папку</a>
-</p>
 {% endblock %}

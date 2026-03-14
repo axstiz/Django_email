@@ -1,39 +1,49 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Почта{% endblock %}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .header {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .username {
-            font-weight: bold;
-        }
-        .content {
-            padding: 1rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="header">
-        <div>Почта</div>
-        <div class="username">Пользователь: {{ username }} | <form method="post" action="{% url 'logout' %}" style="display: inline;">{% csrf_token %}<button type="submit" style="background: none; border: none; color: #007bff; cursor: pointer; padding: 0; font: inherit;">Выйти</button></form></div>
-    </div>
-    <div class="content">
-        <p><a href="{% url 'compose' request.user.username %}">✍️ Написать письмо</a></p>
+    <header class="header">
+        <a href="{% url 'root' %}" class="logo">📧 Почта</a>
+        {% if user.is_authenticated %}
+        <div class="user-menu">
+            <span class="username">👤 {{ user.username }}</span>
+            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link">Выйти</button>
+            </form>
+        </div>
+        {% endif %}
+    </header>
+    
+    <main class="content">
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% if user.is_authenticated %}
+        <p class="compose-link">
+            <a href="{% url 'compose' user.username %}" class="btn btn-primary">✍️ Написать письмо</a>
+        </p>
+        {% endif %}
+        
         {% block content %}{% endblock %}
-    </div>
+    </main>
+    
+    <footer class="footer">
+        <p>&copy; 2026 Почта. Все права защищены.</p>
+    </footer>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
